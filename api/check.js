@@ -1,11 +1,23 @@
 const puppeteer = require("puppeteer-core");
 
 module.exports = async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  const sendJson = (status, data) => {
+    const body = JSON.stringify(data);
+    res.writeHead(status, {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    });
+    res.end(body);
+  };
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(200, { "Access-Control-Allow-Origin": "*" });
+    res.end();
+    return;
+  }
 
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: "url required" });
+  if (!url) return sendJson(400, { error: "url required" });
 
   let browser;
   try {
@@ -17,11 +29,11 @@ module.exports = async (req, res) => {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-blink-features=AutomationControlled",
-        "--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
       ],
     });
 
     const page = await browser.newPage();
+    await page.setUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1");
     await page.setExtraHTTPHeaders({ "Accept-Language": "ja-JP,ja;q=0.9" });
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, "webdriver", { get: () => undefined });
@@ -35,7 +47,6 @@ module.exports = async (req, res) => {
         document.querySelector("h1")?.innerText ||
         "不明な商品";
 
-      // __NEXT_DATA__からサイズ情報を取得
       const script = document.getElementById("__NEXT_DATA__");
       if (!script) return { name, sizes: [] };
 
@@ -62,9 +73,9 @@ module.exports = async (req, res) => {
       return { name, sizes };
     });
 
-    res.json(result);
+    sendJson(200, result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendJson(500, { error: err.message });
   } finally {
     if (browser) await browser.close();
   }
