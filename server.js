@@ -7,7 +7,7 @@ const server = http.createServer((req, res) => {
   if (urlObj.pathname === "/debug/chrome") {
     const { execSync } = require("child_process");
     try {
-      const result = execSync("find /opt/render/.cache/puppeteer -name 'chrome' -type f 2>/dev/null").toString();
+      const result = execSync("find / -name 'chrome' -type f 2>/dev/null | grep -v proc | head -5").toString();
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end(result || "Not found");
     } catch(e) {
