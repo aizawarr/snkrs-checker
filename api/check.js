@@ -1,4 +1,16 @@
 const puppeteer = require("puppeteer-core");
+const { execSync } = require("child_process");
+
+function getChromePath() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  try {
+    const result = execSync("find /opt/render/.cache/puppeteer -name 'chrome' -type f 2>/dev/null").toString().trim();
+    if (result) return result.split("\n")[0];
+  } catch(_) {}
+  return "/usr/bin/google-chrome-stable";
+}
 
 module.exports = async (req, res) => {
   const sendJson = (status, data) => {
@@ -21,8 +33,9 @@ module.exports = async (req, res) => {
 
   let browser;
   try {
+    const executablePath = getChromePath();
     browser = await puppeteer.launch({
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/opt/render/.cache/puppeteer/chrome/linux-149.0.7827.22/chrome-linux64/chrome",
+      executablePath,
       headless: "new",
       args: [
         "--no-sandbox",
